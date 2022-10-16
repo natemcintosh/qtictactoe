@@ -1,4 +1,8 @@
-use std::fmt;
+use std::{collections::HashMap, fmt};
+
+use rand::distributions::{Distribution, Uniform};
+use rand::seq::SliceRandom;
+use rand::thread_rng;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 enum Player {
@@ -7,7 +11,7 @@ enum Player {
 }
 
 impl Player {
-    fn next_player(&self) -> Player {
+    fn next_player(self) -> Player {
         match self {
             Player::X => Player::O,
             Player::O => Player::X,
@@ -15,7 +19,7 @@ impl Player {
     }
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 enum Piece {
     Empty = 0,
     X = 1,
@@ -40,7 +44,7 @@ enum GameResult {
     Tie,
 }
 
-#[derive(Debug, Clone, Copy)]
+#[derive(Debug, Clone, Copy, Hash, PartialEq, Eq)]
 struct Board<const N: usize> {
     board: [[Piece; N]; N],
 }
@@ -77,15 +81,13 @@ impl<const N: usize> Board<N> {
 
     /// Iterate over the diagonal from top left to bottom right
     fn get_lr_diag(&self) -> impl Iterator<Item = Piece> + '_ {
-        (0_usize..self.board.len())
-            .into_iter()
-            .map(|idx| self.board[idx][idx])
+        (0_usize..N).into_iter().map(|idx| self.board[idx][idx])
     }
 
     /// Iterate over the diagonal from top right to bottom left
     fn get_rl_diag(&self) -> impl Iterator<Item = Piece> + '_ {
-        let last_idx = self.board.len() - 1;
-        (0_usize..self.board.len())
+        let last_idx = N - 1;
+        (0_usize..N)
             .into_iter()
             .map(move |idx| self.board[idx][last_idx - idx])
     }
@@ -142,6 +144,46 @@ impl<const N: usize> Board<N> {
 
         None
     }
+
+    /// Checks if all the spots are filled
+    fn is_ended(&self) -> bool {
+        !self.board.iter().flatten().any(|&p| p == Piece::Empty)
+    }
+
+    /// Finds the positions of empty spots
+    fn get_empty_spots(&self) -> Vec<(usize, usize)> {
+        let mut empty_spots = Vec::new();
+        for row in 0..N {
+            for col in 0..N {
+                if self.board[row][col] == Piece::Empty {
+                    empty_spots.push((row, col));
+                }
+            }
+        }
+        empty_spots
+    }
+
+    /// `player` makes a move. If it wins the game, return that, then check for tie,
+    /// otherwise None
+    fn make_move(&mut self, player: Player, row_num: usize, col_num: usize) -> Option<GameResult> {
+        assert_eq!(self.board[row_num][col_num], Piece::Empty);
+        match player {
+            Player::X => {
+                self.board[row_num][col_num] = Piece::X;
+            }
+            Player::O => {
+                self.board[row_num][col_num] = Piece::O;
+            }
+        }
+
+        if let Some(winner) = self.get_winner() {
+            return Some(winner);
+        } else if self.is_ended() {
+            return Some(GameResult::Tie);
+        }
+
+        None
+    }
 }
 
 impl<const N: usize> fmt::Display for Board<N> {
@@ -157,6 +199,124 @@ impl<const N: usize> fmt::Display for Board<N> {
     }
 }
 
+struct Q<const N: usize> {
+    alpha: f64,
+    discount: f64,
+    values: HashMap<Board<N>, HashMap<(usize, usize), f64>>,
+}
+
+impl<const N: usize> Q<N> {
+    fn new() -> Self {
+        Q {
+            alpha: 0.5,
+            discount: 0.5,
+            values: HashMap::new(),
+        }
+    }
+
+    /// Even though the `.values` field is a double nested hashmap, this method
+    /// makes it flat to the user.
+    /// It provides a default value of 0.0 if the entry does not exist
+    fn get(&self, state: Board<N>, action: (usize, usize)) -> f64 {
+        match self.values.get(&state) {
+            None => 0.0,
+            Some(action_map) => match action_map.get(&action) {
+                None => 0.0,
+                Some(val) => *val,
+            },
+        }
+    }
+
+    /// Get the action with highest reward, and the reward.
+    /// If state is not yet explored, then (None, 0.0).
+    fn max_action_for_state(&self, state: Board<N>) -> (Option<(usize, usize)>, f64) {
+        if let Some(action_map) = self.values.get(&state) {
+            // There is at least one action entered for this state. Get the max value
+            action_map.iter().fold((None, 0.0), |accum, item| {
+                if accum.1 >= *item.1 {
+                    accum
+                } else {
+                    (Some(*item.0), *item.1)
+                }
+            })
+        } else {
+            (None, 0.0)
+        }
+    }
+
+    fn update(
+        &mut self,
+        state: Board<N>,
+        action: (usize, usize),
+        next_state: Board<N>,
+        reward: f64,
+    ) {
+        // The current value
+        let value = self.get(state, action);
+
+        // Get the highest known value of the `next_state`
+        let (_, next_q) = self.max_action_for_state(next_state);
+
+        let value = value + self.alpha * (reward + (self.discount * next_q) - value);
+
+        match self.values.get_mut(&state) {
+            // Should this maybe
+            None => unreachable!("Should always have current state"),
+            Some(action_map) => match action_map.get_mut(&action) {
+                None => unreachable!("Should always have current state and action"),
+                Some(val) => {
+                    *val = value;
+                }
+            },
+        }
+    }
+}
+
+struct Agent<const N: usize> {
+    eps: f64,
+    qlearner: Q<N>,
+}
+
+impl<const N: usize> Agent<N> {
+    fn new() -> Self {
+        Agent {
+            eps: 1.0,
+            qlearner: Q::new(),
+        }
+    }
+
+    fn get_action(&self, state: Board<N>, valid_actions: &[(usize, usize)]) -> (usize, usize) {
+        // If random draw from U(0, 1) < self.eps, return a random choice from valid_actions
+        let mut rng = thread_rng();
+        let u = Uniform::from(0.0..1.0);
+        if u.sample(&mut rng) < self.eps {
+            return *valid_actions
+                .choose(&mut rng)
+                .expect("Nothing in valid_actions to select");
+        }
+
+        // Otherwise, get the best action for this state if any. If None, return random
+        // choice from valid_actions
+        match self.qlearner.max_action_for_state(state) {
+            (None, _) => *valid_actions
+                .choose(&mut rng)
+                .expect("Nothing in valid_actions to select"),
+            (Some(action), _) => action,
+        }
+    }
+
+    fn learn_one_game(&mut self) {
+        let mut state = Board::<N>::new();
+        let player = Player::X;
+        loop {
+            let action = self.get_action(state, &state.get_empty_spots());
+            let winner = state.make_move(player, action.0, action.1);
+
+            if let Some(end_state) = winner {}
+        }
+    }
+}
+
 fn main() {
     let mut b = Board::<3>::new();
     b.board[2][2] = Piece::X;
@@ -164,7 +324,7 @@ fn main() {
 
     for (g, w) in b.get_lr_diag().zip(want.into_iter()) {
         dbg!(w, g);
-        assert_eq!(w, g)
+        assert_eq!(w, g);
     }
 }
 
@@ -480,5 +640,53 @@ mod tests {
         b.board[2][0] = Piece::X;
         println!("{}", b);
         assert_eq!(Some(GameResult::XWon), b.get_winner())
+    }
+
+    #[test]
+    fn test_is_ended1() {
+        let b = Board::<3>::new();
+        assert!(!b.is_ended())
+    }
+
+    #[test]
+    fn test_is_ended2() {
+        let mut b = Board::<3>::new();
+        for row in 0..3 {
+            for col in 0..3 {
+                b.board[row][col] = Piece::O;
+            }
+        }
+        assert!(b.is_ended())
+    }
+
+    #[test]
+    fn test_get_valid_actions() {
+        let b = Board::<3>::new();
+        // Expect all the indices
+        let mut want = Vec::new();
+        for row in 0..3 {
+            for col in 0..3 {
+                want.push((row, col));
+            }
+        }
+        assert_eq!(want, b.get_empty_spots());
+    }
+
+    #[test]
+    fn test_get_valid_actions_2() {
+        let mut b = Board::<3>::new();
+        b.board[0][2] = Piece::X;
+        b.board[1][2] = Piece::X;
+        b.board[2][2] = Piece::X;
+        b.board[2][0] = Piece::X;
+        b.board[2][1] = Piece::X;
+        // Expect all the indices
+        let mut want = Vec::new();
+        for row in 0..2 {
+            for col in 0..2 {
+                want.push((row, col));
+            }
+        }
+        assert_eq!(want, b.get_empty_spots());
     }
 }
