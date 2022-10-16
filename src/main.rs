@@ -104,6 +104,8 @@ fn play<const N: usize>(agent: &agent::Agent<N>) {
 }
 
 fn main() {
+    println!("WRITE FUNCTION TO TEST IF ALL STATES AND ACTIONS HAVE BEEN EXPLORED DURING LEARNING");
+
     let mut q_agent = agent::Agent::<5>::new();
     let n_iters = 100_000;
     let start_time = std::time::Instant::now();

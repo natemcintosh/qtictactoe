@@ -55,8 +55,8 @@ impl<const N: usize> Board<N> {
     /// Check if a player has won in row `row_num`
     pub fn row_winner(&self, row_num: usize) -> Option<Player> {
         match self.board[row_num].iter().map(|p| *p as i8).sum::<i8>() {
-            N => Some(Player::X),
-            -N => Some(Player::O),
+            3 => Some(Player::X),
+            -3 => Some(Player::O),
             _ => None,
         }
     }
