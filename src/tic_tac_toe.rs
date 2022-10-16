@@ -33,7 +33,7 @@ impl fmt::Display for Piece {
     }
 }
 
-#[derive(Debug, PartialEq)]
+#[derive(Debug, PartialEq, Eq)]
 pub enum GameResult {
     XWon,
     OWon,
@@ -55,8 +55,8 @@ impl<const N: usize> Board<N> {
     /// Check if a player has won in row `row_num`
     pub fn row_winner(&self, row_num: usize) -> Option<Player> {
         match self.board[row_num].iter().map(|p| *p as i8).sum::<i8>() {
-            3 => Some(Player::X),
-            -3 => Some(Player::O),
+            N => Some(Player::X),
+            -N => Some(Player::O),
             _ => None,
         }
     }
@@ -190,7 +190,13 @@ impl<const N: usize> Board<N> {
 impl<const N: usize> fmt::Display for Board<N> {
     // This trait requires `fmt` with this exact signature.
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        for row in self.board {
+        let mut column_header: String = "  ".to_owned();
+        for n in 0..N {
+            column_header.push_str(&format!("{} ", n));
+        }
+        writeln!(f, "{}", &column_header)?;
+        for (row_num, row) in self.board.iter().enumerate() {
+            write!(f, "{} ", row_num)?;
             for item in row {
                 write!(f, "{} ", item)?;
             }
