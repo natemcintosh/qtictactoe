@@ -1,5 +1,5 @@
 # qtictactoe
-A Q learning project for my Data Mining class. The structure comes from [this python repository](https://github.com/alirezamika/tutorials/tree/master/qtictactoe). 
+A Q learning project for my Data Mining class. The structure comes from [this python repository](https://github.com/alirezamika/tutorials/tree/master/qtictactoe), although edits have been made to make it more generic, and fit rust's paradigms.
 
 This repository has several components:
 - `q_matrix.rs` is the logic for storing knowledge learned
