@@ -43,20 +43,22 @@ pub enum GameResult {
 #[derive(Debug, Clone, Copy, Hash, PartialEq, Eq)]
 pub struct Board<const N: usize> {
     pub board: [[Piece; N]; N],
+    pub n: i8,
 }
 
 impl<const N: usize> Board<N> {
     pub fn new() -> Self {
         Board {
             board: [[Piece::Empty; N]; N],
+            n: N.try_into().expect("N is too big to fit in an i8"),
         }
     }
 
     /// Check if a player has won in row `row_num`
     pub fn row_winner(&self, row_num: usize) -> Option<Player> {
         match self.board[row_num].iter().map(|p| *p as i8).sum::<i8>() {
-            3 => Some(Player::X),
-            -3 => Some(Player::O),
+            x if x == self.n => Some(Player::X),
+            x if x == -self.n => Some(Player::O),
             _ => None,
         }
     }
@@ -69,8 +71,8 @@ impl<const N: usize> Board<N> {
     /// Check if a player has won in column `col_num`
     pub fn col_winner(&self, col_num: usize) -> Option<Player> {
         match self.get_col(col_num).map(|p| p as i8).sum::<i8>() {
-            3 => Some(Player::X),
-            -3 => Some(Player::O),
+            x if x == self.n => Some(Player::X),
+            x if x == -self.n => Some(Player::O),
             _ => None,
         }
     }
@@ -91,16 +93,16 @@ impl<const N: usize> Board<N> {
     /// Check if a player has won via a diagonal
     pub fn diagonal_winner(&self) -> Option<Player> {
         let lr_val = self.get_lr_diag().map(|p| p as i8).sum::<i8>();
-        if lr_val == 3 {
+        if lr_val == self.n {
             return Some(Player::X);
-        } else if lr_val == -3 {
+        } else if lr_val == -self.n {
             return Some(Player::O);
         }
 
         let rl_val = self.get_rl_diag().map(|p| p as i8).sum::<i8>();
-        if rl_val == 3 {
+        if rl_val == self.n {
             return Some(Player::X);
-        } else if rl_val == -3 {
+        } else if rl_val == -self.n {
             return Some(Player::O);
         }
 

@@ -1,6 +1,7 @@
 use std::io;
 use std::str::FromStr;
 
+use clap::Parser;
 use rand::seq::SliceRandom;
 use rand::thread_rng;
 
@@ -103,15 +104,25 @@ fn play<const N: usize>(agent: &agent::Agent<N>) {
     }
 }
 
-fn main() {
-    println!("WRITE FUNCTION TO TEST IF ALL STATES AND ACTIONS HAVE BEEN EXPLORED DURING LEARNING");
+#[derive(Parser)]
+#[command(author, version, about, long_about = None)]
+struct Cli {
+    /// How many iterations to train for
+    #[arg(value_parser = clap::value_parser!(usize))]
+    #[arg(default_value_t = 1000000)]
+    n_iters: usize,
+}
 
-    let mut q_agent = agent::Agent::<5>::new();
-    let n_iters = 100_000;
+fn main() {
+    let cli = Cli::parse();
+
+    let n_iters = cli.n_iters;
+
+    let mut q_agent = agent::Agent::<4>::new();
     let start_time = std::time::Instant::now();
     println!("Learning for {n_iters} iterations");
     q_agent.learn(n_iters);
-    println!("Learning took {:.2} ms", start_time.elapsed().as_millis());
+    println!("Learning took {:.2} s", start_time.elapsed().as_secs_f32());
 
     loop {
         println!("\nLet's play\n");

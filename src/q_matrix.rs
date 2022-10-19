@@ -79,4 +79,15 @@ impl<const N: usize> Q<N> {
             },
         }
     }
+
+    pub fn possible_minus_explored(&self) -> usize {
+        // How many possible states are there? 3^(N^2)
+        let n_possible_states = 3_usize
+            .checked_pow((N as u32).pow(2))
+            .expect("Overflow calculating possible states. Need to change to bigint");
+
+        let n_explored_states = self.values.len();
+
+        n_possible_states - n_explored_states
+    }
 }

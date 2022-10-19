@@ -79,6 +79,15 @@ impl<const N: usize> Agent<N> {
             self.learn_one_game();
             self.eps -= 0.0001;
         }
+
+        // Check if all states have been visited at least once
+        let n_states_still_to_explore = self.qlearner.possible_minus_explored();
+        if n_states_still_to_explore != 0 {
+            println!(
+                "Still have not visited {} states at least once",
+                n_states_still_to_explore
+            );
+        }
     }
 }
 
