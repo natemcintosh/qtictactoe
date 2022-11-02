@@ -118,7 +118,7 @@ fn main() {
 
     let n_iters = cli.n_iters;
 
-    let mut q_agent = agent::Agent::<4>::new();
+    let mut q_agent = agent::Agent::<3>::new();
     let start_time = std::time::Instant::now();
     println!("Learning for {n_iters} iterations");
     q_agent.learn(n_iters);

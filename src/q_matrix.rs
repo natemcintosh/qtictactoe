@@ -1,11 +1,11 @@
-use std::collections::HashMap;
+use rustc_hash::FxHashMap;
 
 use crate::tic_tac_toe::Board;
 
 pub struct Q<const N: usize> {
     pub alpha: f64,
     pub discount: f64,
-    pub values: HashMap<Board<N>, HashMap<(usize, usize), f64>>,
+    pub values: FxHashMap<Board<N>, FxHashMap<(usize, usize), f64>>,
 }
 
 impl<const N: usize> Q<N> {
@@ -13,11 +13,11 @@ impl<const N: usize> Q<N> {
         Q {
             alpha: 0.5,
             discount: 0.5,
-            values: HashMap::new(),
+            values: FxHashMap::default(),
         }
     }
 
-    /// Even though the `.values` field is a double nested hashmap, this method
+    /// Even though the `.values` field is a double nested HashMap, this method
     /// makes it flat to the user.
     /// It provides a default value of 0.0 if the entry does not exist
     pub fn get(&self, state: Board<N>, action: (usize, usize)) -> f64 {
@@ -65,7 +65,8 @@ impl<const N: usize> Q<N> {
         match self.values.get_mut(&state) {
             // If None, then create an entry for this state and action with reward of 0
             None => {
-                let new_action_map = HashMap::from([(action, 0.0)]);
+                let mut new_action_map = FxHashMap::default();
+                new_action_map.insert(action, 0.0);
                 self.values.insert(state, new_action_map);
             }
             Some(action_map) => match action_map.get_mut(&action) {
