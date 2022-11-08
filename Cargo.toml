@@ -9,3 +9,6 @@ edition = "2021"
 clap = { version = "4.0.17", features = ["derive"] }
 rand = "0.8.5"
 rustc-hash = "1.1.0"
+
+[profile.release]
+lto = true
