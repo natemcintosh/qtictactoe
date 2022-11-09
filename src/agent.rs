@@ -81,12 +81,9 @@ impl<const N: usize> Agent<N> {
         }
 
         // Check if all states have been visited at least once
-        let n_states_still_to_explore = self.qlearner.possible_minus_explored();
-        if n_states_still_to_explore != 0 {
-            println!(
-                "Still have not visited {} states at least once",
-                n_states_still_to_explore
-            );
+        let n_explored_states = self.qlearner.values.len();
+        if n_explored_states != 0 {
+            println!("Have visited {} states at least once", n_explored_states);
         }
     }
 }
