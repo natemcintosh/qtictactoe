@@ -112,7 +112,7 @@ impl<const N: usize> Board<N> {
     /// Return winner or tie if game over, otherwise None
     pub fn get_winner(&self) -> Option<GameResult> {
         // Check rows
-        for row_num in 0_usize..3 {
+        for row_num in 0_usize..N {
             // If there is a winner, return a GameResult
             if let Some(winner) = self.row_winner(row_num) {
                 return match winner {
@@ -123,7 +123,7 @@ impl<const N: usize> Board<N> {
         }
 
         // Check columns
-        for col_num in 0_usize..3 {
+        for col_num in 0_usize..N {
             if let Some(winner) = self.col_winner(col_num) {
                 return match winner {
                     Player::X => Some(GameResult::XWon),
