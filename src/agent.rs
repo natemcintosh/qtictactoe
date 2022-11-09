@@ -77,7 +77,7 @@ impl<const N: usize> Agent<N> {
     pub fn learn(&mut self, n: usize) {
         for _ in 0..n {
             self.learn_one_game();
-            self.eps -= 0.0001;
+            self.eps -= 0.00001;
         }
 
         // Check if all states have been visited at least once
