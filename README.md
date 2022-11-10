@@ -7,7 +7,8 @@ This repository has the following components:
 - `tic_tac_toe.rs` is the logic for the game of tic-tac-toe. It is (almost) generic to a game with N sides.
 - `main.rs` is how you train, and then play against the agent.
 
-To train and play against the computer:
+## Usage
+To run this, please follow these steps
 1. Make sure you have the [rust compiler](https://www.rust-lang.org/tools/install) installed
 1. Clone this repository
 1. Set the desired board size in `src/main.rs`. Default is 3x3
